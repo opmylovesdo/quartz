@@ -382,7 +382,10 @@ public class StdSchedulerFactory implements SchedulerFactory {
             throw initException;
         }
 
+        //System properties. The following properties are guaranteed to be defined:
+        //获取系统  props.getProperty("org.quartz.properties"); 对应的属性文件
         String requestedFile = System.getProperty(PROPERTIES_FILE);
+        //不存在 使用 "quartz.properties"
         String propFileName = requestedFile != null ? requestedFile
                 : "quartz.properties";
         File propFile = new File(propFileName);
@@ -392,11 +395,14 @@ public class StdSchedulerFactory implements SchedulerFactory {
         InputStream in = null;
 
         try {
+            //如果属性文件存在
             if (propFile.exists()) {
                 try {
+                    // 文件名是从系统属性文件中获取的
                     if (requestedFile != null) {
                         propSrc = "specified file: '" + requestedFile + "'";
                     } else {
+                        // 默认文件名 "quartz.properties" 在当前工作目录
                         propSrc = "default file in current working dir: 'quartz.properties'";
                     }
 
@@ -408,6 +414,8 @@ public class StdSchedulerFactory implements SchedulerFactory {
                             + propFileName + "' could not be read.", ioe);
                     throw initException;
                 }
+
+                // 文件名是从系统属性文件中获取的 并从类加载路径下查找
             } else if (requestedFile != null) {
                 in =
                     Thread.currentThread().getContextClassLoader().getResourceAsStream(requestedFile);
@@ -430,6 +438,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
                 }
 
             } else {
+                //默认资源文件在 Quartz 源代码的包下
                 propSrc = "default resource file in Quartz package: 'quartz.properties'";
 
                 ClassLoader cl = getClass().getClassLoader();
@@ -469,6 +478,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
             }
         }
 
+        //用系统默认的配置属性 覆盖 加载到的配置文件属性(如果重复, 否则是添加)
         initialize(overrideWithSysProps(props));
     }
 
@@ -587,6 +597,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
      * </p>
      */
     public void initialize(Properties props) throws SchedulerException {
+        //外部提供的资源文件实例
         if (propSrc == null) {
             propSrc = "an externally provided properties instance.";
         }
@@ -603,7 +614,14 @@ public class StdSchedulerFactory implements SchedulerFactory {
             throw initException;
         }
 
+        /**
+         * provide a <code>{@link org.quartz.Job}</code>
+         * and <code>{@link org.quartz.Trigger}</code> storage mechanism for the
+         * <code>{@link org.quartz.core.QuartzScheduler}</code>'s use.
+         */
+        // JobStore 重要 提供一个Job和Trigger类的存储(绑定) 给 QuartzScheduler使用
         JobStore js = null;
+        // 线程池 重要 (每个定时任务由一个线程来执行 每个任务执行10s 任务每5s执行一次 并发)
         ThreadPool tp = null;
         QuartzScheduler qs = null;
         DBConnectionManager dbMgr = null;
@@ -618,12 +636,12 @@ public class StdSchedulerFactory implements SchedulerFactory {
         String jobFactoryClass;
         ThreadExecutor threadExecutor;
 
-
+        //看是否存在SchedulerRepository实例 没有则 new
         SchedulerRepository schedRep = SchedulerRepository.getInstance();
 
         // Get Scheduler Properties
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+        //根据key从PropertiesParser获取 没有获取到 放回默认值
         String schedName = cfg.getStringProperty(PROP_SCHED_INSTANCE_NAME,
                 "QuartzScheduler");
 
@@ -775,7 +793,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
             }
 
             jmxScheduler.initialize();
-
+            // put 到 schedRep 的 schedulers
             schedRep.bind(jmxScheduler);
 
             return jmxScheduler;
@@ -842,6 +860,13 @@ public class StdSchedulerFactory implements SchedulerFactory {
                     + tpClass + "' could not be instantiated.", e);
             throw initException;
         }
+        /**
+         * tProps = {Properties@927}  size = 4
+         *  0 = {Hashtable$Entry@932} "threadCount" -> "10"
+         *  1 = {Hashtable$Entry@933} "threadPriority" -> "5"
+         *  2 = {Hashtable$Entry@934} "class" -> "org.quartz.simpl.SimpleThreadPool"
+         *  3 = {Hashtable$Entry@935} "threadsInheritContextClassLoaderOfInitializingThread" -> "true"
+         */
         tProps = cfg.getPropertyGroup(PROP_THREAD_POOL_PREFIX, true);
         try {
             setBeanProps(tp, tProps);
@@ -853,7 +878,7 @@ public class StdSchedulerFactory implements SchedulerFactory {
 
         // Get JobStore Properties
         // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
+        // 默认org.quartz.simpl.RAMJobStore
         String jsClass = cfg.getStringProperty(PROP_JOB_STORE_CLASS,
                 RAMJobStore.class.getName());
 
@@ -1548,11 +1573,23 @@ public class StdSchedulerFactory implements SchedulerFactory {
      * </p>
      */
     public Scheduler getScheduler() throws SchedulerException {
+        /**
+         *  把记载到的属性 放到 {@link PropertiesParser}cfg对象中
+         */
         if (cfg == null) {
             initialize();
         }
-
+        //SchedulerRepository 中 判断是否为空 是 则new一个
         SchedulerRepository schedRep = SchedulerRepository.getInstance();
+        /**
+         *  看cfg 中 properties 对象是否配置了Scheduler的name 没有 默认是 QuartzScheduler
+         *
+         *  {@link SchedulerRepository} HashMap<String, Scheduler> schedulers;
+         *  根据 getSchedulerName() 在 SchedulerRepository 的 schedulers 中查询是否有被注册(缓存) 在 SchedulerFactory中
+         *  存在 判断是否被关闭了
+         *      是 则 从 SchedulerRepository 中 移除
+         *      否 直接返回
+         */
 
         Scheduler sched = schedRep.lookup(getSchedulerName());
 

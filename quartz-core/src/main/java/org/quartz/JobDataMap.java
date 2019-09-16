@@ -24,6 +24,7 @@ import java.util.Map;
 import org.quartz.utils.StringKeyDirtyFlagMap;
 
 /**
+ * TODO
  * Holds state information for <code>Job</code> instances.
  * 
  * <p>

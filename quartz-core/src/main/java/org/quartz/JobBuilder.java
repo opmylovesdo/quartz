@@ -85,7 +85,9 @@ public class JobBuilder {
      * @return a new JobBuilder
      */
     public static JobBuilder newJob(Class <? extends Job> jobClass) {
+        //创建JobBuilder
         JobBuilder b = new JobBuilder();
+        //传入Job的Class对象
         b.ofType(jobClass);
         return b;
     }
@@ -128,6 +130,7 @@ public class JobBuilder {
      * @see JobDetail#getKey()
      */
     public JobBuilder withIdentity(String name) {
+        // 创建JobKey name + group(为空时 this.group = DEFAULT_GROUP;)
         key = new JobKey(name, null);
         return this;
     }  

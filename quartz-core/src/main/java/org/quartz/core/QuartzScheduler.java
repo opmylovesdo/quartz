@@ -536,7 +536,7 @@ public class QuartzScheduler implements RemotableQuartzScheduler {
 
         if (initialStart == null) {
             initialStart = new Date();
-            this.resources.getJobStore().schedulerStarted();            
+            this.resources.getJobStore().schedulerStarted();// nothing to do
             startPlugins();
         } else {
             resources.getJobStore().schedulerResumed();
@@ -831,7 +831,7 @@ public class QuartzScheduler implements RemotableQuartzScheduler {
         }
         
         OperableTrigger trig = (OperableTrigger)trigger;
-
+        //设置Trigger的JobKey
         if (trigger.getJobKey() == null) {
             trig.setJobKey(jobDetail.getKey());
         } else if (!trigger.getJobKey().equals(jobDetail.getKey())) {

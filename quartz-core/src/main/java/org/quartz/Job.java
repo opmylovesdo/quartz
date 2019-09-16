@@ -19,6 +19,7 @@
 package org.quartz;
 
 /**
+ * {@link org.springframework.scheduling.quartz.QuartzJobBean}
  * <p>
  * The interface to be implemented by classes which represent a 'job' to be
  * performed.
